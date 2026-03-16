@@ -80,22 +80,12 @@
   }
   .chip.selected { background: #f5a623; color: #1a1a2e; border-color: #f5a623; font-weight: 600; }
 
-  .gas-setup { background: #2c1810; border: 1px solid #f5a623; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
-  .gas-setup summary { color: #f5a623; font-weight: 600; cursor: pointer; font-size: 14px; }
-  .gas-setup input { margin-top: 8px; }
 </style>
 </head>
 <body>
 
 <h1>ソフリット製造記録</h1>
 
-<details class="gas-setup">
-  <summary>Google Sheets 連携設定</summary>
-  <label>GAS WebアプリURL</label>
-  <input type="url" id="gasUrl" placeholder="https://script.google.com/macros/s/..." value="">
-  <button onclick="saveGasUrl()" style="padding:8px 16px;border:none;border-radius:8px;background:#f5a623;color:#1a1a2e;font-weight:600;cursor:pointer;">保存</button>
-  <p class="hint" style="margin-top:8px;">※ 初回のみ設定。以降は自動で記憶されます。</p>
-</details>
 
 <!-- ロット情報 -->
 <div class="section">
@@ -283,20 +273,11 @@ const chipValues = { oilFilm: '', emulsion: '', viscosity: '' };
 const vegs = ['onion', 'carrot', 'celery', 'shiitake', 'tomato'];
 const vegNames = { onion: '玉ねぎ', carrot: 'にんじん', celery: 'セロリ', shiitake: '椎茸', tomato: 'トマト' };
 
+// GAS URL (固定)
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzwI_JpT9JaRNmWNnB2lcYaALYofJQ-dTUL12vUHWOK-Ee6QmiOkKhTWf0JT8A5WRykNw/exec';
+
 // Init
 document.getElementById('date').value = new Date().toISOString().slice(0, 10);
-loadGasUrl();
-
-function loadGasUrl() {
-  const url = localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbzwI_JpT9JaRNmWNnB2lcYaALYofJQ-dTUL12vUHWOK-Ee6QmiOkKhTWf0JT8A5WRykNw/exec';
-  document.getElementById('gasUrl').value = url;
-  if (!localStorage.getItem('gasUrl')) localStorage.setItem('gasUrl', url);
-}
-function saveGasUrl() {
-  const url = document.getElementById('gasUrl').value.trim();
-  localStorage.setItem('gasUrl', url);
-  alert('保存しました');
-}
 
 // Mode toggle
 function setMode(mode) {
@@ -440,11 +421,7 @@ function getVegPercents() {
 
 // Submit
 async function submitData() {
-  const gasUrl = localStorage.getItem('gasUrl');
-  if (!gasUrl) {
-    showStatus('GAS URLを設定してください', 'err');
-    return;
-  }
+  const gasUrl = GAS_URL;
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
