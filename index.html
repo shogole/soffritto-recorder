@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ソフリット製造記録</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 16px;
+    padding-bottom: 100px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 16px; color: #f5a623; }
+  h2 { font-size: 15px; margin: 20px 0 8px; color: #f5a623; border-bottom: 1px solid #333; padding-bottom: 4px; }
+
+  .section { background: #16213e; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+
+  label { display: block; font-size: 13px; color: #aaa; margin-bottom: 4px; }
+  input, select, textarea {
+    width: 100%; padding: 10px; border: 1px solid #333; border-radius: 8px;
+    background: #0f3460; color: #fff; font-size: 16px; margin-bottom: 10px;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #f5a623; outline: none; }
+  input[type="number"] { font-variant-numeric: tabular-nums; }
+  textarea { height: 60px; resize: vertical; }
+
+  .row { display: flex; gap: 8px; align-items: flex-end; }
+  .row > div { flex: 1; }
+  .row .narrow { flex: 0 0 70px; }
+  .row .mid { flex: 0 0 90px; }
+
+  .veggie-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; padding: 8px; background: #0f3460; border-radius: 8px; }
+  .veggie-row .name { flex: 0 0 80px; font-size: 14px; font-weight: 600; }
+  .veggie-row input { margin-bottom: 0; flex: 1; }
+  .veggie-row .calc-weight { flex: 0 0 65px; text-align: right; font-size: 14px; color: #f5a623; font-weight: 600; }
+
+  .total-bar {
+    background: #f5a623; color: #1a1a2e; padding: 10px 14px; border-radius: 8px;
+    display: flex; justify-content: space-between; font-weight: 700; font-size: 15px; margin-top: 8px;
+  }
+
+  .salt-bar {
+    background: #e74c3c; color: #fff; padding: 10px 14px; border-radius: 8px;
+    display: flex; justify-content: space-between; font-weight: 700; font-size: 15px; margin-top: 8px;
+  }
+
+  .mode-toggle {
+    display: flex; gap: 0; margin-bottom: 12px; border-radius: 8px; overflow: hidden;
+  }
+  .mode-toggle button {
+    flex: 1; padding: 10px; border: none; font-size: 14px; font-weight: 600;
+    background: #16213e; color: #aaa; cursor: pointer;
+  }
+  .mode-toggle button.active { background: #f5a623; color: #1a1a2e; }
+
+  .btn-submit {
+    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    background: #27ae60; color: #fff; font-size: 17px; font-weight: 700;
+    cursor: pointer; margin-top: 16px;
+  }
+  .btn-submit:active { background: #219a52; }
+  .btn-submit:disabled { background: #555; color: #888; }
+
+  .status { text-align: center; margin-top: 10px; font-size: 14px; }
+  .status.ok { color: #27ae60; }
+  .status.err { color: #e74c3c; }
+
+  .hint { font-size: 12px; color: #777; margin-top: -6px; margin-bottom: 8px; }
+
+  .chip-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip {
+    padding: 6px 12px; border-radius: 20px; border: 1px solid #333;
+    background: #0f3460; color: #ccc; font-size: 13px; cursor: pointer;
+  }
+  .chip.selected { background: #f5a623; color: #1a1a2e; border-color: #f5a623; font-weight: 600; }
+
+  .gas-setup { background: #2c1810; border: 1px solid #f5a623; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .gas-setup summary { color: #f5a623; font-weight: 600; cursor: pointer; font-size: 14px; }
+  .gas-setup input { margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>ソフリット製造記録</h1>
+
+<details class="gas-setup">
+  <summary>Google Sheets 連携設定</summary>
+  <label>GAS WebアプリURL</label>
+  <input type="url" id="gasUrl" placeholder="https://script.google.com/macros/s/..." value="">
+  <button onclick="saveGasUrl()" style="padding:8px 16px;border:none;border-radius:8px;background:#f5a623;color:#1a1a2e;font-weight:600;cursor:pointer;">保存</button>
+  <p class="hint" style="margin-top:8px;">※ 初回のみ設定。以降は自動で記憶されます。</p>
+</details>
+
+<!-- ロット情報 -->
+<div class="section">
+  <h2>ロット情報</h2>
+  <div class="row">
+    <div><label>試作日</label><input type="date" id="date"></div>
+    <div class="narrow"><label>ロット番号</label><input type="number" id="lotNo" placeholder="#"></div>
+  </div>
+  <div class="row">
+    <div><label>天候</label><input type="text" id="weather" placeholder="晴れ"></div>
+    <div><label>室温</label><input type="text" id="roomTemp" placeholder="22℃"></div>
+  </div>
+</div>
+
+<!-- 入力モード -->
+<div class="section">
+  <h2>原材料 入力モード</h2>
+  <div class="mode-toggle">
+    <button id="modeWeight" class="active" onclick="setMode('weight')">重量から入力</button>
+    <button id="modeBase" onclick="setMode('base')">1つ基準で自動計算</button>
+  </div>
+
+  <!-- 重量直接入力モード -->
+  <div id="weightMode">
+    <div class="veggie-row">
+      <div class="name">玉ねぎ</div>
+      <input type="number" id="w_onion" placeholder="g" inputmode="decimal" oninput="calcFromWeights()">
+      <div class="calc-weight" id="p_onion">--%</div>
+    </div>
+    <div class="veggie-row">
+      <div class="name">にんじん</div>
+      <input type="number" id="w_carrot" placeholder="g" inputmode="decimal" oninput="calcFromWeights()">
+      <div class="calc-weight" id="p_carrot">--%</div>
+    </div>
+    <div class="veggie-row">
+      <div class="name">セロリ</div>
+      <input type="number" id="w_celery" placeholder="g" inputmode="decimal" oninput="calcFromWeights()">
+      <div class="calc-weight" id="p_celery">--%</div>
+    </div>
+    <div class="veggie-row">
+      <div class="name">椎茸</div>
+      <input type="number" id="w_shiitake" placeholder="g" inputmode="decimal" oninput="calcFromWeights()">
+      <div class="calc-weight" id="p_shiitake">--%</div>
+    </div>
+    <div class="veggie-row">
+      <div class="name">トマト</div>
+      <input type="number" id="w_tomato" placeholder="g (ペースト換算)" inputmode="decimal" oninput="calcFromWeights()">
+      <div class="calc-weight" id="p_tomato">--%</div>
+    </div>
+  </div>
+
+  <!-- 基準入力モード -->
+  <div id="baseMode" style="display:none;">
+    <label>基準にする野菜</label>
+    <select id="baseVeg" onchange="calcFromBase()">
+      <option value="onion">玉ねぎ</option>
+      <option value="carrot">にんじん</option>
+      <option value="celery">セロリ</option>
+      <option value="shiitake">椎茸</option>
+      <option value="tomato">トマト</option>
+    </select>
+    <label>基準の重量 (g)</label>
+    <input type="number" id="baseWeight" placeholder="例: 500" inputmode="decimal" oninput="calcFromBase()">
+
+    <h2 style="margin-top:12px;">各野菜の配合率 (%)</h2>
+    <p class="hint">毎回自由に変更できます</p>
+    <div class="veggie-row">
+      <div class="name">玉ねぎ</div>
+      <input type="number" id="r_onion" placeholder="%" inputmode="decimal" value="57" oninput="calcFromBase()">
+    </div>
+    <div class="veggie-row">
+      <div class="name">にんじん</div>
+      <input type="number" id="r_carrot" placeholder="%" inputmode="decimal" value="26" oninput="calcFromBase()">
+    </div>
+    <div class="veggie-row">
+      <div class="name">セロリ</div>
+      <input type="number" id="r_celery" placeholder="%" inputmode="decimal" value="12" oninput="calcFromBase()">
+    </div>
+    <div class="veggie-row">
+      <div class="name">椎茸</div>
+      <input type="number" id="r_shiitake" placeholder="%" inputmode="decimal" value="4" oninput="calcFromBase()">
+    </div>
+    <div class="veggie-row">
+      <div class="name">トマト</div>
+      <input type="number" id="r_tomato" placeholder="%" inputmode="decimal" value="0" oninput="calcFromBase()">
+    </div>
+    <p class="hint">合計: <span id="ratioTotal">99</span>%</p>
+
+    <h2 style="margin-top:12px;">自動計算結果</h2>
+    <div class="veggie-row"><div class="name">玉ねぎ</div><div class="calc-weight" id="c_onion">-- g</div></div>
+    <div class="veggie-row"><div class="name">にんじん</div><div class="calc-weight" id="c_carrot">-- g</div></div>
+    <div class="veggie-row"><div class="name">セロリ</div><div class="calc-weight" id="c_celery">-- g</div></div>
+    <div class="veggie-row"><div class="name">椎茸</div><div class="calc-weight" id="c_shiitake">-- g</div></div>
+    <div class="veggie-row"><div class="name">トマト</div><div class="calc-weight" id="c_tomato">-- g</div></div>
+  </div>
+
+  <label>塩分率 (%)</label>
+  <input type="number" id="saltRate" value="0.5" step="0.1" inputmode="decimal" oninput="calcSalt()">
+
+  <div class="total-bar">
+    <span>生材料合計</span><span id="totalWeight">-- g</span>
+  </div>
+  <div class="salt-bar">
+    <span>塩</span><span id="saltWeight">-- g</span>
+  </div>
+</div>
+
+<!-- 工程1: 重ね煮 -->
+<div class="section">
+  <h2>工程1: 重ね煮</h2>
+  <div class="row">
+    <div><label>重ね煮後 重量 (g)</label><input type="number" id="afterSteam" inputmode="decimal" oninput="calcEvap1()"></div>
+    <div class="mid"><label>蒸発率</label><div id="evap1" style="padding:10px;font-weight:600;color:#f5a623;">-- %</div></div>
+  </div>
+  <div class="row">
+    <div><label>加熱時間 (分)</label><input type="number" id="steamTime" inputmode="decimal"></div>
+    <div><label>火加減</label><input type="text" id="steamHeat" placeholder="トロ火"></div>
+  </div>
+</div>
+
+<!-- 工程2: 油・加熱 -->
+<div class="section">
+  <h2>工程2: 油・加熱</h2>
+  <label>使用油種類</label>
+  <div class="chip-group">
+    <div class="chip selected" onclick="selectOil(this)">太白ごま油</div>
+    <div class="chip" onclick="selectOil(this)">オリーブ油</div>
+    <div class="chip" onclick="selectOil(this)">菜種油</div>
+    <div class="chip" onclick="selectOil(this)">その他</div>
+  </div>
+  <input type="text" id="oilOther" placeholder="その他の油名" style="display:none;">
+
+  <div class="row">
+    <div><label>油追加量 (g)</label><input type="number" id="oilAmount" inputmode="decimal" oninput="calcOilRatio()"></div>
+    <div class="mid"><label>油比率</label><div id="oilRatio" style="padding:10px;font-weight:600;color:#f5a623;">-- %</div></div>
+  </div>
+  <div class="row">
+    <div><label>加熱時間 (分)</label><input type="number" id="oilTime" inputmode="decimal"></div>
+    <div><label>加熱温度</label><input type="text" id="oilTemp" placeholder="℃"></div>
+  </div>
+  <label>火加減メモ</label>
+  <input type="text" id="oilHeatMemo" placeholder="弱火でふつふつぐらい">
+
+  <div class="row">
+    <div><label>完成総重量 (g)</label><input type="number" id="finalWeight" inputmode="decimal" oninput="calcFinalEvap()"></div>
+    <div class="mid"><label>最終蒸発率</label><div id="finalEvap" style="padding:10px;font-weight:600;color:#f5a623;">-- %</div></div>
+  </div>
+</div>
+
+<!-- 仕上がりチェック -->
+<div class="section">
+  <h2>仕上がりチェック</h2>
+  <label>表面油膜</label>
+  <div class="chip-group" id="oilFilmChips">
+    <div class="chip" onclick="selectChip('oilFilm', this)">有</div>
+    <div class="chip" onclick="selectChip('oilFilm', this)">無</div>
+  </div>
+  <label>乳化</label>
+  <div class="chip-group" id="emulsionChips">
+    <div class="chip" onclick="selectChip('emulsion', this)">乳化</div>
+    <div class="chip" onclick="selectChip('emulsion', this)">分離</div>
+  </div>
+  <label>粘度</label>
+  <div class="chip-group" id="viscosityChips">
+    <div class="chip" onclick="selectChip('viscosity', this)">ゆるい</div>
+    <div class="chip" onclick="selectChip('viscosity', this)">中</div>
+    <div class="chip" onclick="selectChip('viscosity', this)">ぽってり</div>
+  </div>
+</div>
+
+<!-- メモ -->
+<div class="section">
+  <h2>メモ</h2>
+  <textarea id="memo" placeholder="気づいたこと、改善点など..."></textarea>
+</div>
+
+<!-- 送信 -->
+<button class="btn-submit" id="submitBtn" onclick="submitData()">スプレッドシートに記録する</button>
+<div class="status" id="statusMsg"></div>
+
+<script>
+// State
+let currentMode = 'weight';
+const chipValues = { oilFilm: '', emulsion: '', viscosity: '' };
+const vegs = ['onion', 'carrot', 'celery', 'shiitake', 'tomato'];
+const vegNames = { onion: '玉ねぎ', carrot: 'にんじん', celery: 'セロリ', shiitake: '椎茸', tomato: 'トマト' };
+
+// Init
+document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+loadGasUrl();
+
+function loadGasUrl() {
+  const url = localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbzwI_JpT9JaRNmWNnB2lcYaALYofJQ-dTUL12vUHWOK-Ee6QmiOkKhTWf0JT8A5WRykNw/exec';
+  document.getElementById('gasUrl').value = url;
+  if (!localStorage.getItem('gasUrl')) localStorage.setItem('gasUrl', url);
+}
+function saveGasUrl() {
+  const url = document.getElementById('gasUrl').value.trim();
+  localStorage.setItem('gasUrl', url);
+  alert('保存しました');
+}
+
+// Mode toggle
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeWeight').classList.toggle('active', mode === 'weight');
+  document.getElementById('modeBase').classList.toggle('active', mode === 'base');
+  document.getElementById('weightMode').style.display = mode === 'weight' ? '' : 'none';
+  document.getElementById('baseMode').style.display = mode === 'base' ? '' : 'none';
+  if (mode === 'base') calcFromBase();
+}
+
+// Weight mode: calculate percentages
+function calcFromWeights() {
+  const vals = {};
+  let total = 0;
+  vegs.forEach(v => {
+    vals[v] = parseFloat(document.getElementById('w_' + v).value) || 0;
+    total += vals[v];
+  });
+  vegs.forEach(v => {
+    const pct = total > 0 ? Math.round(vals[v] / total * 100) : 0;
+    document.getElementById('p_' + v).textContent = pct + '%';
+  });
+  document.getElementById('totalWeight').textContent = total.toFixed(1) + ' g';
+  calcSalt();
+  calcEvap1();
+  calcFinalEvap();
+}
+
+// Base mode: calculate weights from ratios
+function calcFromBase() {
+  const baseVeg = document.getElementById('baseVeg').value;
+  const baseW = parseFloat(document.getElementById('baseWeight').value) || 0;
+  const ratios = {};
+  let ratioSum = 0;
+  vegs.forEach(v => {
+    ratios[v] = parseFloat(document.getElementById('r_' + v).value) || 0;
+    ratioSum += ratios[v];
+  });
+  document.getElementById('ratioTotal').textContent = ratioSum;
+
+  let total = 0;
+  if (baseW > 0 && ratios[baseVeg] > 0) {
+    const unitWeight = baseW / ratios[baseVeg];
+    vegs.forEach(v => {
+      const w = Math.round(unitWeight * ratios[v]);
+      document.getElementById('c_' + v).textContent = w + ' g';
+      total += w;
+    });
+  } else {
+    vegs.forEach(v => document.getElementById('c_' + v).textContent = '-- g');
+  }
+  document.getElementById('totalWeight').textContent = total > 0 ? total.toFixed(1) + ' g' : '-- g';
+  calcSalt();
+  calcEvap1();
+  calcFinalEvap();
+}
+
+function getTotal() {
+  const txt = document.getElementById('totalWeight').textContent;
+  return parseFloat(txt) || 0;
+}
+
+function calcSalt() {
+  const total = getTotal();
+  const rate = parseFloat(document.getElementById('saltRate').value) || 0;
+  const salt = total * rate / 100;
+  document.getElementById('saltWeight').textContent = salt > 0 ? salt.toFixed(1) + ' g' : '-- g';
+}
+
+function calcEvap1() {
+  const total = getTotal();
+  const after = parseFloat(document.getElementById('afterSteam').value) || 0;
+  if (total > 0 && after > 0) {
+    const evap = ((total - after) / total * 100);
+    document.getElementById('evap1').textContent = evap.toFixed(1) + ' %';
+  } else {
+    document.getElementById('evap1').textContent = '-- %';
+  }
+}
+
+function calcOilRatio() {
+  const afterSteam = parseFloat(document.getElementById('afterSteam').value) || 0;
+  const oil = parseFloat(document.getElementById('oilAmount').value) || 0;
+  if (afterSteam > 0 && oil > 0) {
+    document.getElementById('oilRatio').textContent = (oil / afterSteam * 100).toFixed(1) + ' %';
+  } else {
+    document.getElementById('oilRatio').textContent = '-- %';
+  }
+}
+
+function calcFinalEvap() {
+  const total = getTotal();
+  const final_ = parseFloat(document.getElementById('finalWeight').value) || 0;
+  if (total > 0 && final_ > 0) {
+    document.getElementById('finalEvap').textContent = ((total - final_) / total * 100).toFixed(1) + ' %';
+  } else {
+    document.getElementById('finalEvap').textContent = '-- %';
+  }
+}
+
+// Chip selectors
+function selectOil(el) {
+  el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('oilOther').style.display = el.textContent === 'その他' ? '' : 'none';
+}
+
+function selectChip(group, el) {
+  el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  chipValues[group] = el.textContent;
+}
+
+// Get veggie weights (from either mode)
+function getVegWeights() {
+  const result = {};
+  if (currentMode === 'weight') {
+    vegs.forEach(v => result[v] = parseFloat(document.getElementById('w_' + v).value) || 0);
+  } else {
+    vegs.forEach(v => {
+      const txt = document.getElementById('c_' + v).textContent;
+      result[v] = parseFloat(txt) || 0;
+    });
+  }
+  return result;
+}
+
+function getVegPercents() {
+  const result = {};
+  if (currentMode === 'weight') {
+    vegs.forEach(v => {
+      const txt = document.getElementById('p_' + v).textContent;
+      result[v] = parseInt(txt) || 0;
+    });
+  } else {
+    vegs.forEach(v => result[v] = parseFloat(document.getElementById('r_' + v).value) || 0);
+  }
+  return result;
+}
+
+// Submit
+async function submitData() {
+  const gasUrl = localStorage.getItem('gasUrl');
+  if (!gasUrl) {
+    showStatus('GAS URLを設定してください', 'err');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  const weights = getVegWeights();
+  const percents = getVegPercents();
+  const total = getTotal();
+  const saltRate = parseFloat(document.getElementById('saltRate').value) || 0;
+  const salt = total * saltRate / 100;
+
+  const oilChip = document.querySelector('.chip-group .chip.selected');
+  let oilType = oilChip ? oilChip.textContent : '';
+  if (oilType === 'その他') oilType = document.getElementById('oilOther').value || 'その他';
+
+  const data = {
+    date: document.getElementById('date').value,
+    lotNo: document.getElementById('lotNo').value,
+    weather: document.getElementById('weather').value,
+    roomTemp: document.getElementById('roomTemp').value,
+    onion: weights.onion, onionPct: percents.onion,
+    carrot: weights.carrot, carrotPct: percents.carrot,
+    celery: weights.celery, celeryPct: percents.celery,
+    shiitake: weights.shiitake, shiitakePct: percents.shiitake,
+    tomato: weights.tomato, tomatoPct: percents.tomato,
+    salt: parseFloat(salt.toFixed(1)), saltRate: saltRate,
+    total: parseFloat(total.toFixed(1)),
+    afterSteam: parseFloat(document.getElementById('afterSteam').value) || '',
+    evap1: document.getElementById('evap1').textContent.replace(' %', ''),
+    steamTime: document.getElementById('steamTime').value,
+    steamHeat: document.getElementById('steamHeat').value,
+    oilType: oilType,
+    oilAmount: document.getElementById('oilAmount').value,
+    oilRatio: document.getElementById('oilRatio').textContent.replace(' %', ''),
+    oilTime: document.getElementById('oilTime').value,
+    oilTemp: document.getElementById('oilTemp').value,
+    oilHeatMemo: document.getElementById('oilHeatMemo').value,
+    finalWeight: document.getElementById('finalWeight').value,
+    finalEvap: document.getElementById('finalEvap').textContent.replace(' %', ''),
+    oilFilm: chipValues.oilFilm,
+    emulsion: chipValues.emulsion,
+    viscosity: chipValues.viscosity,
+    memo: document.getElementById('memo').value
+  };
+
+  try {
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    showStatus('記録しました！', 'ok');
+  } catch (e) {
+    showStatus('送信エラー: ' + e.message, 'err');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'スプレッドシートに記録する';
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status ' + type;
+  setTimeout(() => { el.textContent = ''; }, 5000);
+}
+</script>
+</body>
+</html>
