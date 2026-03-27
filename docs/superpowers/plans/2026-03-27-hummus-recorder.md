@@ -1,0 +1,522 @@
+# Hummus Recorder Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** `hummus.html` を新規作成し、フムスの製造記録をGoogle Spreadsheetに積み上げるモバイル対応Webアプリを完成させる。
+
+**Architecture:** 単一HTMLファイル（CSS・JS内包）。ソフリット版（`index.html`）のUIパターンを踏襲しつつ、フムス固有のフィールド・計算ロジックを実装する。GASエンドポイントへfetch POSTでデータを送信。
+
+**Tech Stack:** HTML / CSS / Vanilla JS / Google Apps Script（GAS）
+
+---
+
+## ファイル一覧
+
+| 操作 | パス | 内容 |
+|------|------|------|
+| 新規作成 | `hummus.html` | フムス記録アプリ本体（全セクション・CSS・JS） |
+| 変更なし | `index.html` | ソフリット版（触らない） |
+
+---
+
+## Task 1: HTMLスケルトンとCSS
+
+**Files:**
+- Create: `hummus.html`
+
+- [ ] **Step 1: スケルトンHTMLを作成する**
+
+`hummus.html` を以下の内容で作成する。`index.html` のCSS部分をそのままコピーし、アクセントカラー `#f5a623` をすべて `#d4a853` に置換する（10箇所）。
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>フムス製造記録</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 16px;
+    padding-bottom: 100px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 16px; color: #d4a853; }
+  h2 { font-size: 15px; margin: 20px 0 8px; color: #d4a853; border-bottom: 1px solid #333; padding-bottom: 4px; }
+
+  .section { background: #16213e; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+
+  label { display: block; font-size: 13px; color: #aaa; margin-bottom: 4px; }
+  input, select, textarea {
+    width: 100%; padding: 10px; border: 1px solid #333; border-radius: 8px;
+    background: #0f3460; color: #fff; font-size: 16px; margin-bottom: 10px;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #d4a853; outline: none; }
+  input[type="number"] { font-variant-numeric: tabular-nums; }
+  textarea { height: 60px; resize: vertical; }
+
+  .row { display: flex; gap: 8px; align-items: flex-end; }
+  .row > div { flex: 1; }
+  .row .narrow { flex: 0 0 70px; }
+  .row .mid { flex: 0 0 90px; }
+
+  .ingred-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; padding: 8px; background: #0f3460; border-radius: 8px; }
+  .ingred-row .name { flex: 0 0 110px; font-size: 14px; font-weight: 600; }
+  .ingred-row input { margin-bottom: 0; flex: 1; }
+  .ingred-row .calc-val { flex: 0 0 65px; text-align: right; font-size: 14px; color: #d4a853; font-weight: 600; }
+
+  .total-bar {
+    background: #d4a853; color: #1a1a2e; padding: 10px 14px; border-radius: 8px;
+    display: flex; justify-content: space-between; font-weight: 700; font-size: 15px; margin-top: 8px;
+  }
+
+  .chip-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip {
+    padding: 6px 12px; border-radius: 20px; border: 1px solid #333;
+    background: #0f3460; color: #ccc; font-size: 13px; cursor: pointer;
+  }
+  .chip.selected { background: #d4a853; color: #1a1a2e; border-color: #d4a853; font-weight: 600; }
+
+  .btn-submit {
+    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    background: #27ae60; color: #fff; font-size: 17px; font-weight: 700;
+    cursor: pointer; margin-top: 16px;
+  }
+  .btn-submit:active { background: #219a52; }
+  .btn-submit:disabled { background: #555; color: #888; }
+
+  .status { text-align: center; margin-top: 10px; font-size: 14px; }
+  .status.ok { color: #27ae60; }
+  .status.err { color: #e74c3c; }
+
+  .hint { font-size: 12px; color: #777; margin-top: -6px; margin-bottom: 8px; }
+  .calc-display { padding: 10px; font-weight: 600; color: #d4a853; }
+</style>
+</head>
+<body>
+<h1>フムス製造記録</h1>
+<!-- セクションはTask 2以降で追加 -->
+</body>
+</html>
+```
+
+- [ ] **Step 2: ブラウザで開いてタイトルとダークテーマが表示されることを確認する**
+
+```bash
+open /Users/shogole/Desktop/soffritto-recorder/hummus.html
+```
+
+- [ ] **Step 3: コミットする**
+
+```bash
+git -C /Users/shogole/Desktop/soffritto-recorder add hummus.html
+git -C /Users/shogole/Desktop/soffritto-recorder commit -m "feat: hummus.html スケルトン + CSS"
+```
+
+---
+
+## Task 2: ロット情報セクション
+
+**Files:**
+- Modify: `hummus.html`（`<h1>` の直後に追加）
+
+- [ ] **Step 1: ロット情報セクションHTMLを追加する**
+
+`<h1>フムス製造記録</h1>` の直後に以下を挿入する：
+
+```html
+<!-- ロット情報 -->
+<div class="section">
+  <h2>ロット情報</h2>
+  <div class="row">
+    <div><label>試作日</label><input type="date" id="date"></div>
+    <div class="narrow"><label>ロット番号</label><input type="number" id="lotNo" placeholder="#" inputmode="decimal"></div>
+  </div>
+  <div class="row">
+    <div><label>天候</label><input type="text" id="weather" placeholder="晴れ"></div>
+    <div><label>室温</label><input type="text" id="roomTemp" placeholder="22℃"></div>
+  </div>
+</div>
+```
+
+- [ ] **Step 2: `<script>` タグを `</body>` 直前に追加し、日付の初期値を設定する**
+
+```html
+<script>
+const GAS_URL = 'YOUR_GAS_URL_HERE';
+
+// 初期化
+document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+</script>
+```
+
+- [ ] **Step 3: ブラウザをリロードしてロット情報が表示され、日付が今日になっていることを確認する**
+
+- [ ] **Step 4: コミットする**
+
+```bash
+git -C /Users/shogole/Desktop/soffritto-recorder add hummus.html
+git -C /Users/shogole/Desktop/soffritto-recorder commit -m "feat: ロット情報セクション追加"
+```
+
+---
+
+## Task 3: 原材料セクション（入力フィールド + 自動計算）
+
+**Files:**
+- Modify: `hummus.html`
+
+- [ ] **Step 1: 原材料セクションHTMLをロット情報セクションの直後に追加する**
+
+```html
+<!-- 原材料 -->
+<div class="section">
+  <h2>原材料</h2>
+
+  <h2 style="margin-top:4px;font-size:13px;color:#aaa;border:none;">吸水計測</h2>
+  <div class="row">
+    <div>
+      <label>ひよこ豆（乾燥前）(g)</label>
+      <input type="number" id="dryWeight" placeholder="例: 250" inputmode="decimal" oninput="calcAbsorption()">
+    </div>
+    <div>
+      <label>ひよこ豆（ゆで後）(g)</label>
+      <input type="number" id="cookedWeight" value="400" inputmode="decimal" oninput="calcAll()">
+    </div>
+  </div>
+  <div class="ingred-row">
+    <div class="name">吸水率</div>
+    <div class="calc-val" id="absorptionRate">--%</div>
+  </div>
+
+  <h2 style="margin-top:12px;font-size:13px;color:#aaa;border:none;">調味料</h2>
+  <div class="ingred-row">
+    <div class="name">氷茹で汁 (g)</div>
+    <input type="number" id="iceBroth" value="70" inputmode="decimal" oninput="calcAll()">
+  </div>
+  <div class="ingred-row">
+    <div class="name">ガーリックオイル (g)</div>
+    <input type="number" id="garlicOil" value="5" inputmode="decimal" oninput="calcAll()">
+  </div>
+  <div class="ingred-row">
+    <div class="name">塩 (g)</div>
+    <input type="number" id="salt" value="3" inputmode="decimal" oninput="calcAll()">
+  </div>
+  <div class="ingred-row">
+    <div class="name">レモン汁 (g)</div>
+    <input type="number" id="lemonJuice" value="10" inputmode="decimal" oninput="calcAll()">
+  </div>
+  <div class="ingred-row">
+    <div class="name">ねりごま (g)</div>
+    <input type="number" id="tahini" value="10" inputmode="decimal" oninput="calcAll()">
+  </div>
+
+  <div class="total-bar">
+    <span>合計重量</span><span id="totalWeight">-- g</span>
+  </div>
+</div>
+```
+
+- [ ] **Step 2: JSに計算関数を追加する（`<script>` 内、初期化コードの後）**
+
+```js
+function calcAbsorption() {
+  const dry    = parseFloat(document.getElementById('dryWeight').value) || 0;
+  const cooked = parseFloat(document.getElementById('cookedWeight').value) || 0;
+  if (dry > 0 && cooked > 0) {
+    document.getElementById('absorptionRate').textContent =
+      ((cooked - dry) / dry * 100).toFixed(1) + '%';
+  } else {
+    document.getElementById('absorptionRate').textContent = '--%';
+  }
+  calcTotal();
+}
+
+function calcAll() {
+  calcAbsorption();
+  // calcAbsorption() が内部で calcTotal() を呼ぶため、calcTotal() の重複呼び出しなし
+}
+
+function calcTotal() {
+  const cooked  = parseFloat(document.getElementById('cookedWeight').value) || 0;
+  const broth   = parseFloat(document.getElementById('iceBroth').value) || 0;
+  const garlic  = parseFloat(document.getElementById('garlicOil').value) || 0;
+  const salt    = parseFloat(document.getElementById('salt').value) || 0;
+  const lemon   = parseFloat(document.getElementById('lemonJuice').value) || 0;
+  const tahini  = parseFloat(document.getElementById('tahini').value) || 0;
+  const total   = cooked + broth + garlic + salt + lemon + tahini;
+  document.getElementById('totalWeight').textContent = total > 0 ? total.toFixed(1) + ' g' : '-- g';
+}
+
+// ページロード時に初期値で計算を実行
+calcAll();
+```
+
+- `dryWeight` の `oninput` は `calcAbsorption()` を呼ぶ（吸水率 + 合計重量を更新）
+- `cookedWeight` 以降の各フィールドの `oninput` は `calcAll()` を呼ぶ（同上）
+- 吸水率ガード条件: `dry > 0 && cooked > 0`（どちらかが未入力のときは `--` を表示）
+
+- [ ] **Step 3: ブラウザをリロードして確認する**
+  - 初期表示: ゆで後400、各調味料のデフォルト値が入っていること
+  - 合計重量が `498.0 g`（400+70+5+3+10+10）と表示されること
+  - 乾燥前に250を入力すると吸水率が `60.0%` と表示されること
+  - 乾燥前を消すと吸水率が `--%` に戻ること
+
+- [ ] **Step 4: コミットする**
+
+```bash
+git -C /Users/shogole/Desktop/soffritto-recorder add hummus.html
+git -C /Users/shogole/Desktop/soffritto-recorder commit -m "feat: 原材料セクション + 吸水率・合計重量自動計算"
+```
+
+---
+
+## Task 4: 工程セクション
+
+**Files:**
+- Modify: `hummus.html`
+
+- [ ] **Step 1: 工程セクションを原材料セクションの直後に追加する**
+
+```html
+<!-- 工程 -->
+<div class="section">
+  <h2>工程</h2>
+  <label>茹で時間（分）</label>
+  <input type="number" id="boilTime" placeholder="90" inputmode="decimal">
+  <label>工程メモ</label>
+  <input type="text" id="processMemo" placeholder="圧力鍋15分、自然減圧など">
+</div>
+```
+
+- [ ] **Step 2: ブラウザをリロードして工程セクションが表示されることを確認する**
+
+- [ ] **Step 3: コミットする**
+
+```bash
+git -C /Users/shogole/Desktop/soffritto-recorder add hummus.html
+git -C /Users/shogole/Desktop/soffritto-recorder commit -m "feat: 工程セクション追加"
+```
+
+---
+
+## Task 5: 仕上がり評価セクション（5段階チップ）
+
+**Files:**
+- Modify: `hummus.html`
+
+- [ ] **Step 1: 仕上がり評価セクションを工程セクションの直後に追加する**
+
+```html
+<!-- 仕上がり評価 -->
+<div class="section">
+  <h2>仕上がり評価</h2>
+
+  <label>なめらかさ</label>
+  <div class="chip-group" id="smoothnessChips">
+    <div class="chip" onclick="selectChip('smoothness', this)">1</div>
+    <div class="chip" onclick="selectChip('smoothness', this)">2</div>
+    <div class="chip" onclick="selectChip('smoothness', this)">3</div>
+    <div class="chip" onclick="selectChip('smoothness', this)">4</div>
+    <div class="chip" onclick="selectChip('smoothness', this)">5</div>
+  </div>
+
+  <label>塩味</label>
+  <div class="chip-group" id="saltinessChips">
+    <div class="chip" onclick="selectChip('saltiness', this)">1</div>
+    <div class="chip" onclick="selectChip('saltiness', this)">2</div>
+    <div class="chip" onclick="selectChip('saltiness', this)">3</div>
+    <div class="chip" onclick="selectChip('saltiness', this)">4</div>
+    <div class="chip" onclick="selectChip('saltiness', this)">5</div>
+  </div>
+
+  <label>酸味</label>
+  <div class="chip-group" id="acidityChips">
+    <div class="chip" onclick="selectChip('acidity', this)">1</div>
+    <div class="chip" onclick="selectChip('acidity', this)">2</div>
+    <div class="chip" onclick="selectChip('acidity', this)">3</div>
+    <div class="chip" onclick="selectChip('acidity', this)">4</div>
+    <div class="chip" onclick="selectChip('acidity', this)">5</div>
+  </div>
+
+  <label>全体評価</label>
+  <div class="chip-group" id="overallRatingChips">
+    <div class="chip" onclick="selectChip('overallRating', this)">1</div>
+    <div class="chip" onclick="selectChip('overallRating', this)">2</div>
+    <div class="chip" onclick="selectChip('overallRating', this)">3</div>
+    <div class="chip" onclick="selectChip('overallRating', this)">4</div>
+    <div class="chip" onclick="selectChip('overallRating', this)">5</div>
+  </div>
+</div>
+```
+
+- [ ] **Step 2: JSにチップ状態管理を追加する（`const GAS_URL` の直後）**
+
+```js
+const chipValues = { smoothness: '', saltiness: '', acidity: '', overallRating: '' };
+
+function selectChip(group, el) {
+  el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  chipValues[group] = el.textContent;
+}
+```
+
+- [ ] **Step 3: ブラウザをリロードしてチップが選択できること、選択時に色が変わることを確認する**
+
+- [ ] **Step 4: コミットする**
+
+```bash
+git -C /Users/shogole/Desktop/soffritto-recorder add hummus.html
+git -C /Users/shogole/Desktop/soffritto-recorder commit -m "feat: 仕上がり評価セクション（5段階チップ）追加"
+```
+
+---
+
+## Task 6: アレンジ材料・メモ・送信ボタン
+
+**Files:**
+- Modify: `hummus.html`
+
+- [ ] **Step 1: アレンジ材料・メモ・送信ボタンを仕上がり評価セクションの直後に追加する**
+
+```html
+<!-- アレンジ材料 -->
+<div class="section">
+  <h2>アレンジ材料</h2>
+  <textarea id="arrangement" placeholder="クミン5g、スモークパプリカ2g など"></textarea>
+</div>
+
+<!-- メモ -->
+<div class="section">
+  <h2>メモ</h2>
+  <textarea id="memo" placeholder="気づいたこと、改善点など..."></textarea>
+</div>
+
+<!-- 送信 -->
+<button class="btn-submit" id="submitBtn" onclick="submitData()">スプレッドシートに記録する</button>
+<div class="status" id="statusMsg"></div>
+```
+
+- [ ] **Step 2: JS に `submitData()` と `showStatus()` を追加する**
+
+```js
+async function submitData() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  const dry    = parseFloat(document.getElementById('dryWeight').value) || 0;
+  const cooked = parseFloat(document.getElementById('cookedWeight').value) || 0;
+  const absorptionRaw = (dry > 0 && cooked > 0)
+    ? ((cooked - dry) / dry * 100).toFixed(1)
+    : '';
+
+  const broth  = parseFloat(document.getElementById('iceBroth').value) || 0;
+  const garlic = parseFloat(document.getElementById('garlicOil').value) || 0;
+  const salt   = parseFloat(document.getElementById('salt').value) || 0;
+  const lemon  = parseFloat(document.getElementById('lemonJuice').value) || 0;
+  const tahini = parseFloat(document.getElementById('tahini').value) || 0;
+  const total  = cooked + broth + garlic + salt + lemon + tahini;
+
+  const data = {
+    date:           document.getElementById('date').value,
+    lotNo:          document.getElementById('lotNo').value,
+    weather:        document.getElementById('weather').value,
+    roomTemp:       document.getElementById('roomTemp').value,
+    dryWeight:      dry || '',
+    cookedWeight:   cooked || '',
+    absorptionRate: absorptionRaw,
+    iceBroth:       broth || '',
+    garlicOil:      garlic || '',
+    salt:           salt || '',
+    lemonJuice:     lemon || '',
+    tahini:         tahini || '',
+    totalWeight:    total > 0 ? parseFloat(total.toFixed(1)) : '',
+    boilTime:       document.getElementById('boilTime').value,
+    processMemo:    document.getElementById('processMemo').value,
+    smoothness:     chipValues.smoothness,
+    saltiness:      chipValues.saltiness,
+    acidity:        chipValues.acidity,
+    overallRating:  chipValues.overallRating,
+    arrangement:    document.getElementById('arrangement').value,
+    memo:           document.getElementById('memo').value,
+  };
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    showStatus('記録しました！', 'ok');
+  } catch (e) {
+    showStatus('送信エラー: ' + e.message, 'err');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'スプレッドシートに記録する';
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status ' + type;
+  setTimeout(() => { el.textContent = ''; }, 5000);
+}
+```
+
+- [ ] **Step 3: ブラウザをリロードして全セクションが表示されることを確認する**
+  - 全フィールドが正しく表示される
+  - 送信ボタンを押すと「送信中...」になった後、`GAS_URL` がプレースホルダーのためエラーになること（正常動作）
+
+- [ ] **Step 4: コミットする**
+
+```bash
+git -C /Users/shogole/Desktop/soffritto-recorder add hummus.html
+git -C /Users/shogole/Desktop/soffritto-recorder commit -m "feat: アレンジ材料・メモ・送信ロジック追加 — hummus.html 完成"
+```
+
+---
+
+## Task 7: 動作確認 & GitHubへプッシュ
+
+**Files:**
+- なし（確認のみ）
+
+- [ ] **Step 1: ブラウザで全機能を通しで確認する**
+  - 乾燥前250、ゆで後400 → 吸水率 `60.0%`
+  - 全調味料デフォルト値 → 合計 `498.0 g`
+  - 全チップを選択 → 選択色に変わること
+  - 送信ボタン押下 → `GAS_URL` がプレースホルダーのためエラー表示（正常）
+
+- [ ] **Step 2: `index.html` が変更されていないことを確認する**
+
+```bash
+git -C /Users/shogole/Desktop/soffritto-recorder diff index.html
+```
+
+期待出力: （差分なし）
+
+- [ ] **Step 3: GitHubへプッシュする**
+
+```bash
+git -C /Users/shogole/Desktop/soffritto-recorder push origin main
+```
+
+---
+
+## GAS設定（実装後に別途実施）
+
+実装完了後、以下を別途実施する：
+
+1. Google Apps Scriptで新しいデプロイを作成し、URLを取得する
+2. `hummus.html` の `const GAS_URL = 'YOUR_GAS_URL_HERE';` を実際のURLに置き換える
+3. GASスクリプト側で上記21キーをスプレッドシートの列にマッピングする（スペックの送信JSONキー名一覧を参照）
