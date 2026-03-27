@@ -138,6 +138,47 @@
   <input type="text" id="processMemo" placeholder="圧力鍋15分、自然減圧など">
 </div>
 
+<!-- 仕上がり評価 -->
+<div class="section">
+  <h2>仕上がり評価</h2>
+
+  <label>なめらかさ</label>
+  <div class="chip-group">
+    <div class="chip" onclick="selectChip('smoothness', this)">1</div>
+    <div class="chip" onclick="selectChip('smoothness', this)">2</div>
+    <div class="chip" onclick="selectChip('smoothness', this)">3</div>
+    <div class="chip" onclick="selectChip('smoothness', this)">4</div>
+    <div class="chip" onclick="selectChip('smoothness', this)">5</div>
+  </div>
+
+  <label>塩味</label>
+  <div class="chip-group">
+    <div class="chip" onclick="selectChip('saltiness', this)">1</div>
+    <div class="chip" onclick="selectChip('saltiness', this)">2</div>
+    <div class="chip" onclick="selectChip('saltiness', this)">3</div>
+    <div class="chip" onclick="selectChip('saltiness', this)">4</div>
+    <div class="chip" onclick="selectChip('saltiness', this)">5</div>
+  </div>
+
+  <label>酸味</label>
+  <div class="chip-group">
+    <div class="chip" onclick="selectChip('acidity', this)">1</div>
+    <div class="chip" onclick="selectChip('acidity', this)">2</div>
+    <div class="chip" onclick="selectChip('acidity', this)">3</div>
+    <div class="chip" onclick="selectChip('acidity', this)">4</div>
+    <div class="chip" onclick="selectChip('acidity', this)">5</div>
+  </div>
+
+  <label>全体評価</label>
+  <div class="chip-group">
+    <div class="chip" onclick="selectChip('overallRating', this)">1</div>
+    <div class="chip" onclick="selectChip('overallRating', this)">2</div>
+    <div class="chip" onclick="selectChip('overallRating', this)">3</div>
+    <div class="chip" onclick="selectChip('overallRating', this)">4</div>
+    <div class="chip" onclick="selectChip('overallRating', this)">5</div>
+  </div>
+</div>
+
 <script>
 const GAS_URL = 'YOUR_GAS_URL_HERE';
 const chipValues = { smoothness: '', saltiness: '', acidity: '', overallRating: '' };
