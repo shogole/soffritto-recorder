@@ -179,6 +179,22 @@
   </div>
 </div>
 
+<!-- アレンジ材料 -->
+<div class="section">
+  <h2>アレンジ材料</h2>
+  <textarea id="arrangement" placeholder="クミン5g、スモークパプリカ2g など"></textarea>
+</div>
+
+<!-- メモ -->
+<div class="section">
+  <h2>メモ</h2>
+  <textarea id="memo" placeholder="気づいたこと、改善点など..."></textarea>
+</div>
+
+<!-- 送信 -->
+<button class="btn-submit" id="submitBtn" onclick="submitData()">スプレッドシートに記録する</button>
+<div class="status" id="statusMsg"></div>
+
 <script>
 const GAS_URL = 'YOUR_GAS_URL_HERE';
 const chipValues = { smoothness: '', saltiness: '', acidity: '', overallRating: '' };
