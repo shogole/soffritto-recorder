@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>フムス製造記録</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    padding: 16px;
+    padding-bottom: 100px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 16px; color: #d4a853; }
+  h2 { font-size: 15px; margin: 20px 0 8px; color: #d4a853; border-bottom: 1px solid #333; padding-bottom: 4px; }
+
+  .section { background: #16213e; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+
+  label { display: block; font-size: 13px; color: #aaa; margin-bottom: 4px; }
+  input, select, textarea {
+    width: 100%; padding: 10px; border: 1px solid #333; border-radius: 8px;
+    background: #0f3460; color: #fff; font-size: 16px; margin-bottom: 10px;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #d4a853; outline: none; }
+  input[type="number"] { font-variant-numeric: tabular-nums; }
+  textarea { height: 60px; resize: vertical; }
+
+  .row { display: flex; gap: 8px; align-items: flex-end; }
+  .row > div { flex: 1; }
+  .row .narrow { flex: 0 0 70px; }
+
+  .ingred-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; padding: 8px; background: #0f3460; border-radius: 8px; }
+  .ingred-row .name { flex: 0 0 130px; font-size: 14px; font-weight: 600; }
+  .ingred-row input { margin-bottom: 0; flex: 1; }
+  .ingred-row .calc-val { flex: 0 0 70px; text-align: right; font-size: 14px; color: #d4a853; font-weight: 600; }
+
+  .total-bar {
+    background: #d4a853; color: #1a1a2e; padding: 10px 14px; border-radius: 8px;
+    display: flex; justify-content: space-between; font-weight: 700; font-size: 15px; margin-top: 8px;
+  }
+
+  .chip-group { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid #333;
+    background: #0f3460; color: #ccc; font-size: 14px; cursor: pointer;
+  }
+  .chip.selected { background: #d4a853; color: #1a1a2e; border-color: #d4a853; font-weight: 600; }
+
+  .btn-submit {
+    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    background: #27ae60; color: #fff; font-size: 17px; font-weight: 700;
+    cursor: pointer; margin-top: 16px;
+  }
+  .btn-submit:active { background: #219a52; }
+  .btn-submit:disabled { background: #555; color: #888; }
+
+  .status { text-align: center; margin-top: 10px; font-size: 14px; }
+  .status.ok { color: #27ae60; }
+  .status.err { color: #e74c3c; }
+
+  .sub-label { font-size: 13px; color: #d4a853; margin: 12px 0 6px; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>フムス製造記録</h1>
+</body>
+</html>
