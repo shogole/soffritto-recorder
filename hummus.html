@@ -68,5 +68,124 @@
 </head>
 <body>
 <h1>フムス製造記録</h1>
+
+<!-- ロット情報 -->
+<div class="section">
+  <h2>ロット情報</h2>
+  <div class="row">
+    <div><label>試作日</label><input type="date" id="date"></div>
+    <div class="narrow"><label>ロット番号</label><input type="number" id="lotNo" placeholder="#" inputmode="decimal"></div>
+  </div>
+  <div class="row">
+    <div><label>天候</label><input type="text" id="weather" placeholder="晴れ"></div>
+    <div><label>室温</label><input type="text" id="roomTemp" placeholder="22℃"></div>
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'YOUR_GAS_URL_HERE';
+const chipValues = { smoothness: '', saltiness: '', acidity: '', overallRating: '' };
+
+// 初期化
+document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+
+function calcAbsorption() {
+  const dry    = parseFloat(document.getElementById('dryWeight').value) || 0;
+  const cooked = parseFloat(document.getElementById('cookedWeight').value) || 0;
+  if (dry > 0 && cooked > 0) {
+    document.getElementById('absorptionRate').textContent =
+      ((cooked - dry) / dry * 100).toFixed(1) + '%';
+  } else {
+    document.getElementById('absorptionRate').textContent = '--%';
+  }
+  calcTotal();
+}
+
+function calcAll() {
+  calcAbsorption();
+}
+
+function calcTotal() {
+  const cooked = parseFloat(document.getElementById('cookedWeight').value) || 0;
+  const broth  = parseFloat(document.getElementById('iceBroth').value) || 0;
+  const garlic = parseFloat(document.getElementById('garlicOil').value) || 0;
+  const salt   = parseFloat(document.getElementById('salt').value) || 0;
+  const lemon  = parseFloat(document.getElementById('lemonJuice').value) || 0;
+  const tahini = parseFloat(document.getElementById('tahini').value) || 0;
+  const total  = cooked + broth + garlic + salt + lemon + tahini;
+  document.getElementById('totalWeight').textContent = total > 0 ? total.toFixed(1) + ' g' : '-- g';
+}
+
+function selectChip(group, el) {
+  el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  chipValues[group] = el.textContent;
+}
+
+async function submitData() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  const dry    = parseFloat(document.getElementById('dryWeight').value) || 0;
+  const cooked = parseFloat(document.getElementById('cookedWeight').value) || 0;
+  const absorptionRaw = (dry > 0 && cooked > 0)
+    ? ((cooked - dry) / dry * 100).toFixed(1)
+    : '';
+
+  const broth  = parseFloat(document.getElementById('iceBroth').value) || 0;
+  const garlic = parseFloat(document.getElementById('garlicOil').value) || 0;
+  const salt   = parseFloat(document.getElementById('salt').value) || 0;
+  const lemon  = parseFloat(document.getElementById('lemonJuice').value) || 0;
+  const tahini = parseFloat(document.getElementById('tahini').value) || 0;
+  const total  = cooked + broth + garlic + salt + lemon + tahini;
+
+  const data = {
+    date:           document.getElementById('date').value,
+    lotNo:          document.getElementById('lotNo').value,
+    weather:        document.getElementById('weather').value,
+    roomTemp:       document.getElementById('roomTemp').value,
+    dryWeight:      dry || '',
+    cookedWeight:   cooked || '',
+    absorptionRate: absorptionRaw,
+    iceBroth:       broth || '',
+    garlicOil:      garlic || '',
+    salt:           salt || '',
+    lemonJuice:     lemon || '',
+    tahini:         tahini || '',
+    totalWeight:    total > 0 ? parseFloat(total.toFixed(1)) : '',
+    boilTime:       document.getElementById('boilTime').value,
+    processMemo:    document.getElementById('processMemo').value,
+    smoothness:     chipValues.smoothness,
+    saltiness:      chipValues.saltiness,
+    acidity:        chipValues.acidity,
+    overallRating:  chipValues.overallRating,
+    arrangement:    document.getElementById('arrangement').value,
+    memo:           document.getElementById('memo').value,
+  };
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    showStatus('記録しました！', 'ok');
+  } catch (e) {
+    showStatus('送信エラー: ' + e.message, 'err');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'スプレッドシートに記録する';
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status ' + type;
+  setTimeout(() => { el.textContent = ''; }, 5000);
+}
+</script>
 </body>
 </html>
